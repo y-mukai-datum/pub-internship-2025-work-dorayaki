@@ -1,6 +1,6 @@
 
 {
-	"name": "day1 development",
+	"name": "internship-development",
 	"image": "mcr.microsoft.com/devcontainers/python:1-3.12",
 
 	"features": {
@@ -11,7 +11,9 @@
 		"vscode": {
 			"settings": {},
 			"extensions": [
-				"streetsidesoftware.code-spell-checker"
+				"streetsidesoftware.code-spell-checker",
+				"snowflake.snowflake-vsc",
+				"innoverio.vscode-dbt-power-user"
 			]
 		}
 	},
