@@ -16,5 +16,9 @@
 		}
 	},
 
+	"containerEnv": {
+		"SNOWFLAKE_PRIVATE_KEY_PATH": "/home/vscode/.ssh/rsa_key.p8"
+	},
+
 	"postCreateCommand": "make setup"
 }
