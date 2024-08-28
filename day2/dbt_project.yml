@@ -17,3 +17,4 @@ clean-targets:         # directories to be removed by `dbt clean`
 
 models:
   ds_intern:
+    +materialized: table
