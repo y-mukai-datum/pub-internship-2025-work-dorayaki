@@ -20,8 +20,6 @@ sources:
             description: 当該商品の商品単価
           - name: AMOUNT
             description: 当該商品の購買数量
-          - name: TOTAL_PRICE
-            description: 合計購買金額 / unit_price * amount
           - name: USER_ID_HASH
             description: ユーザ単位に一意となるID
           - name: ITEM_NAME
@@ -36,8 +34,6 @@ sources:
             description: 購入者の性別 / 未回答で登録も可能であるため、その場合にNULL
           - name: AGE
             description: 購入者の年齢 / 購入者の購入時の年齢を設定
-          - name: AGE_CATEGORY
-            description: 購入者の年代 / 購入者の購入時の年代を設定。「年齢」が、NULLの場合、null
           - name: STATE_NAME
             description: 購入者の居住都道府県
           - name: MARRIAGE_STATUS
