@@ -1,0 +1,55 @@
+version: 2
+
+sources:
+  - name: rakuten_ec
+    database: SHARED_DB
+    schema: RAKUTEN_EC_RAW
+    tables:
+      - name: purchase
+        description: 楽天市場の購買データ
+        columns:
+          - name: ID
+            description: レコード単位の通番
+          - name: MESSAGE_ID
+            description: メール単位に一意となるID / message_idのユニーク数＝メール数
+          - name: PURCHASED_AT
+            description: YYYY-MM-DD hh:mm:ss.sss +0900 / 当該商品を購入した日時
+          - name: EC_SITE_NAME
+            description: 購入先ECサイト名を設定 / 今回対象となるのはRakutenのみのため、Rakuten固定
+          - name: UNIT_PRICE
+            description: 当該商品の商品単価
+          - name: AMOUNT
+            description: 当該商品の購買数量
+          - name: USER_ID_HASH
+            description: ユーザ単位に一意となるID
+          - name: ITEM_NAME
+            description: メールに記載されている商品名
+          - name: ITEM_URL
+            description: 当該商品のURL / 商品が廃盤もしくはショップの閉店によりURLのリンクが無効となっている場合もあり
+          - name: DESTINATION_POSTAL_CODE
+            description: 商品の送付先郵便番号
+          - name: STORE_NAME
+            description: 当該商品を販売するショップ名 / 商品が廃盤もしくはショップの閉店によりURLのリンクが無効となっている場合あり
+          - name: GENDER_NAME
+            description: 購入者の性別 / 未回答で登録も可能であるため、その場合にNULL
+          - name: AGE
+            description: 購入者の年齢 / 購入者の購入時の年齢を設定
+          - name: STATE_NAME
+            description: 購入者の居住都道府県
+          - name: MARRIAGE_STATUS
+            description: 婚姻状況
+          - name: PROFESSION_NAME
+            description: 業種
+          - name: OCCUPATION_NAME
+            description: 職業
+          - name: CATEGORY_LEVEL_1
+            description: 当該商品の商品カテゴリ（第１階層） / 楽天市場の商品カテゴリに準ずる
+          - name: CATEGORY_LEVEL_2
+            description: 当該商品の商品カテゴリ（第２階層） / 楽天市場の商品カテゴリに準ずる
+          - name: CATEGORY_LEVEL_3
+            description: 当該商品の商品カテゴリ（第３階層） / 楽天市場の商品カテゴリに準ずる
+          - name: CATEGORY_LEVEL_4
+            description: 当該商品の商品カテゴリ（第４階層） / 楽天市場の商品カテゴリに準ずる
+
+      - name: item
+        description: 各ショップごとの商品データ（全データは多すぎるので一部のみ）
