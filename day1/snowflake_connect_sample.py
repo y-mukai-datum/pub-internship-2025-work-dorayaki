@@ -4,7 +4,7 @@ import snowflake.connector
 import textwrap
 import os
 
-account_name = "ekb70116"
+account_name = "ON44798-DS_5DAYS_INTERN_2025"
 user = os.getenv("SNOWFLAKE_USER")
 password = os.getenv("SNOWFLAKE_PASSWORD")
 
@@ -14,7 +14,7 @@ conn = snowflake.connector.connect(
     account=account_name,
     password=password,
     role='INTERNSHIP_MEMBER',
-    warehouse='TRAINING_WH'
+    warehouse='TESTER_WH'
 )
 
 conn.cursor().execute(f"")
