@@ -1,5 +1,5 @@
-# pub-internship-2024-work
-FY24 DATUM STUDIOインターンシップ作業用リポジトリ
+# pub-internship-2025-work
+FY25 DATUM STUDIOインターンシップ作業用リポジトリ
 
  # setup
  ## AWSのアカウントキーを発行
@@ -25,8 +25,8 @@ export SNOWFLAKE_CLIENT_REQUEST_MFA_TOKEN=true # このまま
 以下コマンドをターミナルから実行する
 
 ```
-$ source source /workspaces/pub-internship-2024-work/.env
-$ echo 'source /workspaces/pub-internship-2024-work/.env' >> ~/.bashrc
+$ source /workspaces/pub-internship-2025-work/.env
+$ echo 'source /workspaces/pub-internship-2025-work/.env' >> ~/.bashrc
 ```
 
 ## 動作確認
