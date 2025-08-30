@@ -3,7 +3,7 @@ ds_intern:
   outputs:
     work:
       type: snowflake
-      account: ekb70116
+      account: ON44798-DS_5DAYS_INTERN_2025
 
       user: "{{ env_var('SNOWFLAKE_USER') }}"
       password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
@@ -17,7 +17,7 @@ ds_intern:
 
     dev:
       type: snowflake
-      account: ekb70116
+      account: ON44798-DS_5DAYS_INTERN_2025
 
       user: "{{ env_var('SNOWFLAKE_USER') }}"
       password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
@@ -31,7 +31,7 @@ ds_intern:
 
     prod:
       type: snowflake
-      account: ekb70116
+      account: ON44798-DS_5DAYS_INTERN_2025
 
       user: "{{ env_var('SNOWFLAKE_USER') }}"
       password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"

@@ -1,4 +1,0 @@
-snowflake-connector-python==3.12.0
-boto3==1.34.154
-dbt-core==1.8.4
-dbt-snowflake==1.8.3
