@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: rakuten_ec_raw
+    database: SHARED_DB
+    schema: RAKUTEN_EC_RAW
+    quoting:
+      database: false
+      schema: false
+      identifier: false
+    tables:
+      - name: STORES
+      - name: USERS
+      - name: ITEMS
+      - name: CATEGORIES
+      - name: EC_SITES
+      - name: PURCHASES
+      - name: PURCHASE_ITEMS

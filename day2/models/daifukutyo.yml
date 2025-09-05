@@ -1,0 +1,19 @@
+version: 2
+models:
+  - name: mart_daifukucho
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              name: fk_mart_daifukucho_purchase_item
+              arguments:
+                to: source('rakuten_ec', 'PURCHASE_ITEMS')
+                field: PURCHASE_ITEM_ID
+
+      - name: is_discount
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]

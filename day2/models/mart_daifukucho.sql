@@ -2,13 +2,13 @@
 
 with
 -- 元テーブル
-purchases as (select * from {{ source('rakuten_ec_raw', 'PURCHASES') }}),
-purchase_items as (select * from {{ source('rakuten_ec_raw', 'PURCHASE_ITEMS') }}),
-items as (select * from {{ source('rakuten_ec_raw', 'ITEMS') }}),
-categories as (select * from {{ source('rakuten_ec_raw', 'CATEGORIES') }}),
-users as (select * from {{ source('rakuten_ec_raw', 'USERS') }}),
-stores as (select * from {{ source('rakuten_ec_raw', 'STORES') }}),
-ec_sites as (select * from {{ source('rakuten_ec_raw', 'EC_SITES') }}),
+purchases       as (select * from {{ source('rakuten_ec_raw', 'PURCHASES') }}),
+purchase_items  as (select * from {{ source('rakuten_ec_raw', 'PURCHASE_ITEMS') }}),
+items           as (select * from {{ source('rakuten_ec_raw', 'ITEMS') }}),
+categories      as (select * from {{ source('rakuten_ec_raw', 'CATEGORIES') }}),
+users           as (select * from {{ source('rakuten_ec_raw', 'USERS') }}),
+stores          as (select * from {{ source('rakuten_ec_raw', 'STORES') }}),
+ec_sites        as (select * from {{ source('rakuten_ec_raw', 'EC_SITES') }}),
 
 -- ★ seed: 都道府県 → 地方
 locate_def as (
@@ -28,17 +28,17 @@ age_def as (
 -- カテゴリ階層（最大4段）
 cat as (
   select
-    c4.CATEGORY_ID   as category_id_lv4,
-    c4.CATEGORY_NAME as category_name_lv4,
+    c4.CATEGORY_ID    as category_id_lv4,
+    c4.CATEGORY_NAME  as category_name_lv4,
     c4.CATEGORY_LEVEL as category_level_lv4,
-    c3.CATEGORY_ID   as category_id_lv3,
-    c3.CATEGORY_NAME as category_name_lv3,
+    c3.CATEGORY_ID    as category_id_lv3,
+    c3.CATEGORY_NAME  as category_name_lv3,
     c3.CATEGORY_LEVEL as category_level_lv3,
-    c2.CATEGORY_ID   as category_id_lv2,
-    c2.CATEGORY_NAME as category_name_lv2,
+    c2.CATEGORY_ID    as category_id_lv2,
+    c2.CATEGORY_NAME  as category_name_lv2,
     c2.CATEGORY_LEVEL as category_level_lv2,
-    c1.CATEGORY_ID   as category_id_lv1,
-    c1.CATEGORY_NAME as category_name_lv1,
+    c1.CATEGORY_ID    as category_id_lv1,
+    c1.CATEGORY_NAME  as category_name_lv1,
     c1.CATEGORY_LEVEL as category_level_lv1
   from categories c4
   left join categories c3 on c4.PARENT_CATEGORY_ID = c3.CATEGORY_ID
@@ -87,11 +87,25 @@ item_with_cats as (
   left join cat c on i.CATEGORY_ID = c.category_id_lv4
 ),
 
--- 購買明細のベース結合（商品名の正規化はSQLで直書き）
+-- 商品名から割引フラグ（語彙は最小限＋α）
+discount_items as (
+  select
+    i.ITEM_ID,
+    case
+      when regexp_like(
+        lower(replace(i.ITEM_NAME, '　', ' ')),
+        'セール|ｾｰﾙ|sale|off|オフ|ｵﾌ|割引|値下げ|タイムセール|半額'
+      )
+      then true else false
+    end as discount_flag
+  from items i
+),
+
+-- ベース
 base as (
   select
     pi.PURCHASE_ITEM_ID   as id,
-    p.PURCHASE_ID         as message_id,
+    p.PURCHASE_ID         as purchased_id,
     p.PURCHASED_AT        as purchased_at,
     u.USER_ID             as user_id_hash,
     u.GENDER_NAME         as gender_name,
@@ -102,15 +116,16 @@ base as (
     u.OCCUPATION_NAME     as occupation_name,
     s.STORE_NAME          as store_name,
     es.EC_SITE_NAME       as ec_site_name,
+    iwc.ITEM_ID           as item_id,
     iwc.ITEM_NAME         as item_name_raw,
 
-    /* === ここが canonical_item_name マクロの代替（SQLのみ） === */
+    -- 名寄せ用（出力には含めない）
     TRIM(
-      REGEXP_REPLACE(                                          -- 連続空白→1個
-        REGEXP_REPLACE(                                        -- 半角()内を除去
-          REGEXP_REPLACE(                                      -- 全角（）内を除去
-            REGEXP_REPLACE(                                    -- 【】内を除去
-              LOWER(REPLACE(iwc.ITEM_NAME, '　', ' ')),        -- 全角空白→半角 & 小文字化
+      REGEXP_REPLACE(
+        REGEXP_REPLACE(
+          REGEXP_REPLACE(
+            REGEXP_REPLACE(
+              LOWER(REPLACE(iwc.ITEM_NAME, '　', ' ')),
               '【[^】]*】', ''
             ),
             '（[^）]*）', ''
@@ -121,10 +136,11 @@ base as (
       )
     ) as item_name_canonical,
 
-    iwc.ITEM_URL           as item_url,
-    pi.UNIT_PRICE          as unit_price,
-    pi.AMOUNT              as amount,
-    p.DESTINATION_POSTAL_CODE as destination_postal,
+    iwc.ITEM_URL                                  as item_url,
+    REGEXP_SUBSTR(iwc.ITEM_URL, '^[^?#]+')        as item_url_canonical,  -- ★追加: URL正規化
+    TRY_TO_NUMBER(pi.UNIT_PRICE)                  as unit_price,          -- ★数値化
+    TRY_TO_NUMBER(pi.AMOUNT)                      as amount,              -- ★数値化
+    p.DESTINATION_POSTAL_CODE                    as destination_postal,
     iwc.category_level_1,
     iwc.category_level_2,
     iwc.category_level_3,
@@ -137,60 +153,77 @@ base as (
   left join ec_sites es on s.EC_SITE_ID = es.EC_SITE_ID
 ),
 
--- 追加情報（割引や最大単価・CSV由来の地方＆年齢カテゴリ）
+-- 付加項目
 enriched as (
   select
     b.*,
-    cast(b.purchased_at as date)                      as purchase_date,
-    cast(date_trunc('month', b.purchased_at) as date) as purchase_month,
-    floor(coalesce(b.age, 0) / 10) * 10               as age_decade,
-    (b.unit_price * b.amount)                         as total_price,
-    iff(b.item_name_raw ilike '%セール%' or b.item_name_raw ilike '%sale%', true, false) as is_discount,
-    max(b.unit_price) over (partition by coalesce(b.item_url, b.item_name_canonical)) as max_unit_price_same_item,
-    greatest(
-      (max(b.unit_price) over (partition by coalesce(b.item_url, b.item_name_canonical)) - b.unit_price) * b.amount,
-      0
-    ) as discount_amount,
-    ld.region_name                                    as region_name,     -- ★ CSV由来
-    ad.age_category                                   as age_category     -- ★ CSV由来
+    floor(try_to_number(b.age) / 10) * 10 as age_decade,
+    (b.unit_price * b.amount)             as total_price,
+
+    -- パーティション内の最大単価を列としてもつ
+    MAX(b.unit_price) OVER (
+      PARTITION BY COALESCE(b.item_url_canonical, b.item_name_canonical)
+    ) as max_unit_price_same_item,
+
+    -- 割引フラグ（最低条件「セール」含む + α）
+    IFF(
+      COALESCE(di.discount_flag, false)
+      or b.item_name_raw ilike '%セール%'
+      or b.item_name_raw ilike '%ｾｰﾙ%'
+      or b.item_name_raw ilike '%sale%'
+      or b.item_name_raw ilike '%off%'
+      or b.item_name_raw ilike '%オフ%'
+      or b.item_name_raw ilike '%ｵﾌ%'
+      or b.item_name_raw ilike '%割引%'
+      or b.item_name_raw ilike '%値下げ%'
+      or b.item_name_raw ilike '%タイムセール%'
+      or b.item_name_raw ilike '%半額%',
+      true, false
+    ) as is_discount,
+
+    -- 同一商品内の最大単価との差×数量（下限0）
+    GREATEST( (max_unit_price_same_item - b.unit_price) * b.amount, 0 ) as discount_amount,
+
+    ld.region_name  as region_name,
+    ad.age_category as age_category
   from base b
-  left join locate_def ld
-    on trim(b.state_name) = trim(ld.todofukenn)
-  left join age_def ad
-    on try_to_number(b.age) between ad.age_lower_limit and ad.age_upper_limit
+  left join discount_items di on b.item_id = di.ITEM_ID
+  left join locate_def   ld on trim(b.state_name) = trim(ld.todofukenn)
+  left join age_def      ad on try_to_number(b.age) between ad.age_lower_limit and ad.age_upper_limit
+),
+
+
+final as (
+  select
+    id,
+    purchased_id,
+    purchased_at,
+    ec_site_name,
+    unit_price,
+    amount,
+    total_price,
+    user_id_hash,
+    item_name_raw as item_name,
+    item_url,
+    destination_postal  as destination_postal_code,
+    store_name,
+    gender_name,
+    age,
+    age_decade,
+    state_name,
+    region_name,
+    age_category,
+    marriage_status,
+    profession_name,
+    occupation_name,
+    category_level_1,
+    category_level_2,
+    category_level_3,
+    category_level_4,
+    is_discount,
+    discount_amount
+  from enriched
+  where category_level_1 is not null
 )
 
-select
-  id,
-  message_id,
-  purchased_at,
-  purchase_date,
-  purchase_month,
-  ec_site_name,
-  unit_price,
-  amount,
-  total_price,
-  user_id_hash,
-  item_name_raw       as item_name,
-  item_name_canonical,
-  item_url,
-  destination_postal  as destination_postal_code,
-  store_name,
-  gender_name,
-  age,
-  age_decade,
-  state_name,
-  region_name,          -- seedから
-  age_category,         -- seedから
-  marriage_status,
-  profession_name,
-  occupation_name,
-  category_level_1,
-  category_level_2,
-  category_level_3,
-  category_level_4,
-  is_discount,
-  discount_amount
-from enriched
-where category_level_1 is not null
-
+select * from final
